@@ -3,7 +3,7 @@ import { IArray, IStringer, Operator } from './types';
 
 export default class Query<T> {
   private projections: string[] = [];
-  private conditions: IArray = [];
+  private conditions: IArray<T> = [];
   private sorts: string[] = [];
   private max = 0;
 
@@ -12,7 +12,7 @@ export default class Query<T> {
     return this;
   };
 
-  public filter = (...args: (Expression<T> | IArray)[]) => {
+  public filter = (...args: (Expression<T> | IArray<T>)[]) => {
     this.conditions = and(...args);
     return this;
   };
@@ -71,10 +71,10 @@ const mapExpr =
 
 const groupBy =
   <T>(seperator: string) =>
-  (...args: (Expression<T> | IArray)[]) => {
+  (...args: (Expression<T> | IArray<T>)[]) => {
     const length = args.length - 1;
     const result = args.reduce(
-      (acc: IArray, cur: Expression<T> | IArray, i: number) => {
+      (acc: IArray<T>, cur: Expression<T> | IArray<T>, i: number) => {
         if (cur instanceof Expression) {
           acc.push(cur);
         } else {
@@ -91,9 +91,9 @@ const groupBy =
     return result;
   };
 
-export const or = <T>(...args: (Expression<T> | IArray)[]) =>
+export const or = <T>(...args: (Expression<T> | IArray<T>)[]) =>
   groupBy<T>(',')(...args);
-export const and = <T>(...args: (Expression<T> | IArray)[]) =>
+export const and = <T>(...args: (Expression<T> | IArray<T>)[]) =>
   groupBy<T>(';')(...args);
 
 export const eq = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
@@ -123,7 +123,7 @@ export const notLike = <T = any, K extends keyof T = any>(
   value: T[K],
 ) => mapExpr<T, K>(Operator.NotLike)(field, value);
 
-export const filter = <T>(...args: (Expression<T> | IArray)[]) =>
+export const filter = <T>(...args: (Expression<T> | IArray<T>)[]) =>
   new Query<T>().filter(...args);
 export const select = (...args: string[]) => new Query().select(...args);
 export const sort = (...args: string[]) => new Query().sort(...args);

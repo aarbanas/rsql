@@ -15,4 +15,4 @@ export interface IStringer {
   string(): string;
 }
 
-export type IArray = (string | IStringer)[];
+export type IArray<T> = (string | IStringer)[];
