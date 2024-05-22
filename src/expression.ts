@@ -1,51 +1,51 @@
 import { IStringer, Operator } from './types';
 
-export class Expression implements IStringer {
+export class Expression<T> implements IStringer {
   constructor(
-    private field: string,
+    private field: keyof T,
     private operator: Operator,
-    private value: any,
+    private value: T[keyof T],
   ) {}
 
   public string = () => {
-    let str = this.field;
+    let str = String(this.field);
     switch (this.operator) {
       case Operator.Equal:
         str += '==';
         break;
       case Operator.NotEqual:
-        str += '=ne=';
+        str += '!=';
         break;
       case Operator.LesserThan:
-        str += '<';
+        str += '=lt=';
         break;
       case Operator.LesserEqual:
-        str += '<=';
+        str += '=le=';
         break;
       case Operator.GreaterThan:
-        str += '>';
+        str += '=gt=';
         break;
       case Operator.GreaterEqual:
-        str += '>=';
+        str += '=ge=';
         break;
       case Operator.In:
         str += '=in=';
         break;
       case Operator.NotIn:
-        str += '=nin=';
+        str += '=out=';
         break;
       case Operator.Like:
         str += '=like=';
         break;
       case Operator.NotLike:
-        str += '=nlike=';
+        str += '=notlike=';
         break;
       default:
         throw new Error('unsupported Operator');
     }
     switch (typeof this.value) {
       case 'string':
-        str += `'${this.value}'`;
+        str += `${this.value}`;
         break;
       default:
         str += this.value;

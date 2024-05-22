@@ -1,18 +1,18 @@
 import { Expression } from './expression';
-import { IArray, IBase, IStringer, Operator } from './types';
+import { IArray, IStringer, Operator } from './types';
 
-export default class Query {
+export default class Query<T> {
   private projections: string[] = [];
   private conditions: IArray = [];
   private sorts: string[] = [];
-  private max: number = 100;
+  private max = 0;
 
   public select = (...args: string[]) => {
     this.projections = args;
     return this;
   };
 
-  public filter = (...args: Array<Expression | IArray>) => {
+  public filter = (...args: (Expression<T> | IArray)[]) => {
     this.conditions = and(...args);
     return this;
   };
@@ -37,7 +37,7 @@ export default class Query {
 
     if (this.conditions.length > 0) {
       querystr += querystr !== '' ? '&' : '';
-      querystr += `filter=${this.conditions.reduce(
+      querystr += this.conditions.reduce(
         (acc: string, cur: IStringer | string) => {
           if (typeof cur === 'string') {
             acc += cur;
@@ -47,7 +47,7 @@ export default class Query {
           return acc;
         },
         '',
-      )}`;
+      );
     }
 
     if (this.sorts.length > 0) {
@@ -64,46 +64,67 @@ export default class Query {
   };
 }
 
-const mapExpr = <T>(optr: Operator) => (field: string, value: T) =>
-  new Expression(field, optr, value);
+const mapExpr =
+  <T, K extends keyof T>(optr: Operator) =>
+  (field: K, value: T[K]) =>
+    new Expression<T>(field, optr, value);
 
-const groupBy = (seperator: string) => (
-  ...args: Array<Expression | IArray>
-) => {
-  const length = args.length - 1;
-  const result = args.reduce(
-    (acc: IArray, cur: Expression | IArray, i: number) => {
-      if (cur instanceof Expression) {
-        acc.push(cur);
-      } else {
-        acc = acc.concat(cur);
-      }
-      if (i < length) {
-        acc.push(seperator);
-      }
-      return acc;
-    },
-    ['('],
-  );
-  result.push(')');
-  return result;
-};
+const groupBy =
+  <T>(seperator: string) =>
+  (...args: (Expression<T> | IArray)[]) => {
+    const length = args.length - 1;
+    const result = args.reduce(
+      (acc: IArray, cur: Expression<T> | IArray, i: number) => {
+        if (cur instanceof Expression) {
+          acc.push(cur);
+        } else {
+          acc = acc.concat(cur);
+        }
+        if (i < length) {
+          acc.push(seperator);
+        }
+        return acc;
+      },
+      ['('],
+    );
+    result.push(')');
+    return result;
+  };
 
-export const or = groupBy(',');
-export const and = groupBy(';');
-export const eq = mapExpr<IBase>(Operator.Equal);
-export const ne = mapExpr<IBase>(Operator.NotEqual);
-export const gt = mapExpr<IBase>(Operator.GreaterThan);
-export const gte = mapExpr<IBase>(Operator.GreaterEqual);
-export const lt = mapExpr<IBase>(Operator.LesserThan);
-export const lte = mapExpr<IBase>(Operator.LesserEqual);
-export const like = mapExpr<IBase>(Operator.Like);
-export const notLike = mapExpr<IBase>(Operator.NotLike);
-export const includes = mapExpr<IBase[]>(Operator.In);
-export const notIncludes = mapExpr<IBase[]>(Operator.NotIn);
+export const or = <T>(...args: (Expression<T> | IArray)[]) =>
+  groupBy<T>(',')(...args);
+export const and = <T>(...args: (Expression<T> | IArray)[]) =>
+  groupBy<T>(';')(...args);
 
+export const eq = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.Equal)(field, value);
+export const ne = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.NotEqual)(field, value);
+export const gt = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.GreaterThan)(field, value);
+export const gte = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.GreaterEqual)(field, value);
+export const lt = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.LesserThan)(field, value);
+export const lte = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.LesserEqual)(field, value);
+export const includes = <T = any, K extends keyof T = any>(
+  field: K,
+  value: T[K],
+) => mapExpr<T, K>(Operator.In)(field, value);
+export const notIncludes = <T = any, K extends keyof T = any>(
+  field: K,
+  value: T[K],
+) => mapExpr<T, K>(Operator.NotIn)(field, value);
+export const like = <T = any, K extends keyof T = any>(field: K, value: T[K]) =>
+  mapExpr<T, K>(Operator.Like)(field, value);
+export const notLike = <T = any, K extends keyof T = any>(
+  field: K,
+  value: T[K],
+) => mapExpr<T, K>(Operator.NotLike)(field, value);
+
+export const filter = <T>(...args: (Expression<T> | IArray)[]) =>
+  new Query<T>().filter(...args);
 export const select = (...args: string[]) => new Query().select(...args);
-export const filter = (...args: Array<Expression | IArray>) =>
-  new Query().filter(...args);
 export const sort = (...args: string[]) => new Query().sort(...args);
 export const limit = (num: number) => new Query().limit(num);

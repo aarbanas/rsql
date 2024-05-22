@@ -15,5 +15,4 @@ export interface IStringer {
   string(): string;
 }
 
-export type IBase = string | boolean | number;
-export type IArray = Array<string | IStringer>;
+export type IArray = (string | IStringer)[];
