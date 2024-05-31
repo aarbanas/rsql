@@ -45,11 +45,20 @@ export class Expression<T> implements IStringer {
     }
     switch (typeof this.value) {
       case 'string':
-        str += `${this.value}`;
+        str += this.sanitizeInput(`${this.value}`);
         break;
       default:
-        str += this.value;
+        if (Array.isArray(this.value)) {
+          str += this.value.map((v) => this.sanitizeInput(String(v))).join(',');
+        } else {
+          str += this.sanitizeInput(String(this.value));
+        }
     }
     return str;
   };
+
+  private sanitizeInput(input: string): string {
+    // Remove any special characters that might be used for SQL injection
+    return input.replace(/[^A-Za-z0-9-_:.]/g, '');
+  }
 }
